@@ -27,4 +27,29 @@ exports.login = async (req, res) => {
     res.json({ token, user: { id: user.id, fullName: user.fullName, email: user.email } });
   } catch (err) { console.error(err); res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Server error' }); }
 };
-exports.me = async (req, res) => { res.json({ userId: req.userId }); };
+exports.me = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId)
+      .select('fullName email photoUrl telephone company')
+      .populate({
+        path: 'company',
+        select: 'title',
+      });
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({ error: 'User not found' });
+    }
+    res.json({
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        photoUrl: user.photoUrl,
+        telephone: user.telephone,
+        company: user.company ? { id: user.company.id, title: user.company.title } : undefined,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Failed to fetch user' });
+  }
+};
